@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #1a5fb4;
+  --color-blue-light: #eef3fb;
+  --color-blue-mid: #c5d8f5;
+
+  --color-green: #1b7d3a;
+  --color-green-light: #e8f5ec;
+
+  --color-amber: #8b5000;
+  --color-amber-light: #fff3e0;
+  --color-amber-mid: #fde8b4;
+
+  --color-red: #b8002c;
+  --color-red-light: #fdeef2;
+
+  --color-purple: #5c35a0;
+  --color-purple-light: #f0ebfb;
+
+  --color-surface: #ffffff;
+  --color-surface-2: #f5f6fa;
+  --color-surface-3: #f0f2f8;
+
+  --color-border: #e2e6ef;
+  --color-border-strong: #cdd3e0;
+
+  --color-text-primary: #0f1623;
+  --color-text-secondary: #475467;
+  --color-text-muted: #8a94a6;
+
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+html,
+body {
+  background-color: var(--color-surface-2);
+  color: var(--color-text-secondary);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  line-height: 20px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@layer components {
+  .text-page-title {
+    font-size: 20px;
+    line-height: 28px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+  }
+
+  .text-section-title {
+    font-size: 16px;
+    line-height: 22px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+  }
+
+  .text-card-title {
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+  }
+
+  .text-body {
+    font-size: 13px;
+    line-height: 20px;
+    font-weight: 400;
+    color: var(--color-text-secondary);
+  }
+
+  .text-label {
+    font-size: 10px;
+    line-height: 14px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .text-mono {
+    font-family: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular,
+      Menlo, monospace;
+    font-size: 12px;
+    line-height: 18px;
+    font-weight: 400;
+    color: var(--color-text-primary);
+  }
+
+  .text-badge {
+    font-size: 10px;
+    line-height: 14px;
+    font-weight: 700;
+  }
+
+  .card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-card);
+    padding: 16px;
+  }
+
+  .card-hover:hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+}
