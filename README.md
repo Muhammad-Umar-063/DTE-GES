@@ -49,27 +49,23 @@ Fill in:
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
+DATABASE_URL=postgresql://postgres.YOUR-REF:YOUR-PASSWORD@aws-0-us-east-1.pooler.supabase.com:5432/postgres
 ANTHROPIC_API_KEY=                # leave blank for Phase 1
 ```
+
+The first three come from **Project Settings → API**. The `DATABASE_URL` comes from **Project Settings → Database → Connection string (URI tab)** — use the **Session pooler** (port 5432) or **Direct connection**. Do NOT use the transaction pooler (port 6543).
 
 ⚠️ Treat `SUPABASE_SERVICE_ROLE_KEY` like a database password — it bypasses RLS. `.env.local` is already gitignored.
 
 ### 4. Apply migrations
 
-Open the Supabase **SQL Editor** and run each file in [supabase/migrations/](supabase/migrations/) **in order**:
+```bash
+npm run db:push
+```
 
-1. `20260523000001_users.sql`
-2. `20260523000002_engagements.sql`
-3. `20260523000003_workflow_transitions.sql`  ← inserts 20 workflow rows
-4. `20260523000004_engagement_approvals.sql`  ← adds the deferred `fk_cpa_approval`
-5. `20260523000005_engagement_events.sql`     ← APPEND-ONLY (no UPDATE / DELETE policies)
-6. `20260523000006_documents.sql`
-7. `20260523000007_runtime_packets.sql`
-8. `20260523000008_access_token_hook.sql`
+This runs every `.sql` file in [supabase/migrations/](supabase/migrations/) against `DATABASE_URL` in filename order, wrapped in transactions, and tracks applied files in a `public._schema_migrations` ledger so re-runs only execute new files.
 
-Or paste all 8 into a single query and run once.
-
-Verify in **Table Editor**: 7 tables, `workflow_transitions` has 20 rows.
+Verify in **Table Editor**: 7 application tables, `workflow_transitions` has 20 rows.
 
 ### 5. Enable the Custom Access Token hook
 
@@ -138,6 +134,7 @@ npm run dev         # start dev server
 npm run build       # production build
 npm run lint        # next lint
 npm run typecheck   # tsc --noEmit
+npm run db:push     # apply migrations in supabase/migrations/ to $DATABASE_URL
 npm run seed        # (re)create demo data — needs .env.local with service-role key
 ```
 
