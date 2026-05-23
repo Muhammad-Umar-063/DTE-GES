@@ -1,12 +1,21 @@
 import PageHeader from "@/components/shell/PageHeader";
+import EngagementFilterPills, {
+  type FilterKey,
+} from "@/components/engagements/EngagementFilterPills";
+import EngagementTable from "@/components/engagements/EngagementTable";
+import RecentActivity from "@/components/engagements/RecentActivity";
+import StatRow from "@/components/engagements/StatRow";
 import { getSession } from "@/lib/auth";
 
-export const metadata = {
-  title: "Command Center — DTE GES",
-};
+export const metadata = { title: "Command Center — DTE GES" };
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: { filter?: FilterKey };
+}) {
   const session = await getSession();
+  const filter = searchParams.filter ?? "all";
 
   return (
     <>
@@ -14,10 +23,19 @@ export default async function DashboardPage() {
         title="Command Center"
         subtitle={`Welcome back, ${session?.fullName ?? session?.email ?? ""}.`}
       />
-      <div className="card text-center">
-        <p className="text-body">
-          The dashboard surface — stat strip, engagement table, and feeds — is delivered in Phase 3.
-        </p>
+
+      <StatRow className="mb-section" />
+
+      <div className="flex flex-col lg:flex-row gap-section">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+            <h2 className="text-section-title">Active engagements</h2>
+            <EngagementFilterPills />
+          </div>
+          <EngagementTable scope="active" filter={filter} />
+        </div>
+
+        <RecentActivity />
       </div>
     </>
   );
