@@ -1,16 +1,13 @@
 import { CheckCircle2 } from "lucide-react";
 import PageHeader from "@/components/shell/PageHeader";
 import EmptyState from "@/components/EmptyState";
+import RealtimeRefresher from "@/components/RealtimeRefresher";
 import EscalationCard from "@/components/escalations/EscalationCard";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getAvailableTransitions } from "@/lib/workflow";
 import type { DocumentRow, EngagementEventRow, EngagementRow } from "@/lib/db-types";
 import type { EngagementState } from "@/lib/supabase/database.types";
-
-// ─────────────────────────────────────────────────────────────
-// Phase 4: Realtime — subscribe to engagements UPDATEs and refilter.
-// ─────────────────────────────────────────────────────────────
 
 export const metadata = { title: "Escalations — DTE GES" };
 
@@ -32,6 +29,7 @@ export default async function EscalationsPage() {
   if (items.length === 0) {
     return (
       <>
+        <RealtimeRefresher table="engagements" />
         <PageHeader
           title="Escalations"
           subtitle="Engagements that need attention before they can move."
@@ -82,9 +80,14 @@ export default async function EscalationsPage() {
 
   return (
     <>
+      <RealtimeRefresher table="engagements" />
       <PageHeader
         title="Escalations"
-        subtitle="Engagements that need attention before they can move."
+        subtitle={
+          items.length === 1
+            ? "1 engagement needs attention before it can move."
+            : `${items.length} engagements need attention before they can move.`
+        }
       />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-section">
         {items.map((eng) => (

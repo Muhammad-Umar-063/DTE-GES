@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AlertTriangle, ChevronLeft } from "lucide-react";
 import DocumentInventory from "@/components/DocumentInventory";
+import RealtimeRefresher from "@/components/RealtimeRefresher";
 import EngagementStateBadge from "@/components/EngagementStateBadge";
 import PhaseProgressBar from "@/components/PhaseProgressBar";
 import RuntimePacket from "@/components/RuntimePacket";
@@ -94,6 +95,18 @@ export default async function EngagementDetailPage({
 
   return (
     <>
+      <RealtimeRefresher
+        table="engagements"
+        filter={`id=eq.${engagement.id}`}
+      />
+      <RealtimeRefresher
+        table="engagement_events"
+        filter={`engagement_id=eq.${engagement.id}`}
+      />
+      <RealtimeRefresher
+        table="engagement_approvals"
+        filter={`engagement_id=eq.${engagement.id}`}
+      />
       <Link
         href="/engagements"
         className="inline-flex items-center gap-1 text-body text-text-secondary hover:text-primary mb-3"

@@ -12,9 +12,10 @@ import { createClient } from "@/lib/supabase/server";
 import {
   errorBody,
   preflightTransition,
-  triggerReleaseSideEffects,
   type EngineErrorBody,
 } from "@/lib/engine";
+import { sendToTaxDome, updateHubSpot } from "@/lib/integrations";
+import { generatePacketForEngagement, recordAutomationError } from "@/lib/packet";
 import type { EngagementRow } from "@/lib/db-types";
 import type { EngagementState } from "@/lib/supabase/database.types";
 
@@ -145,8 +146,70 @@ export async function POST(req: NextRequest) {
     return bad(500, errorBody("server_error"));
   }
 
+  // RELEASED side-effects: packet generation → TaxDome delivery → HubSpot sync.
+  // These are appended AFTER the atomic state-change transaction has committed.
+  // A failure in any step writes an `automation_error` event and does NOT roll
+  // back the release (the audit trail keeps the full story).
   if (toState === "RELEASED") {
-    triggerReleaseSideEffects(engagement!.id);
+    const updatedEngagement = (rpcData as EngagementRow | null) ?? engagement!;
+    let packetId: string | null = null;
+    try {
+      const packet = await generatePacketForEngagement(
+        supabase,
+        updatedEngagement,
+        session.userId,
+        session.role,
+      );
+      packetId = packet.packetId;
+    } catch (err) {
+      await recordAutomationError(
+        supabase,
+        updatedEngagement,
+        session.userId,
+        session.role,
+        "generate_packet",
+        err,
+      );
+    }
+
+    if (packetId) {
+      try {
+        await sendToTaxDome(
+          supabase,
+          updatedEngagement,
+          { packetId },
+          session.userId,
+          session.role,
+        );
+      } catch (err) {
+        await recordAutomationError(
+          supabase,
+          updatedEngagement,
+          session.userId,
+          session.role,
+          "taxdome_send",
+          err,
+        );
+      }
+    }
+
+    try {
+      await updateHubSpot(
+        supabase,
+        updatedEngagement,
+        session.userId,
+        session.role,
+      );
+    } catch (err) {
+      await recordAutomationError(
+        supabase,
+        updatedEngagement,
+        session.userId,
+        session.role,
+        "hubspot_update",
+        err,
+      );
+    }
   }
 
   return NextResponse.json({ engagement: rpcData });

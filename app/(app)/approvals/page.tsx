@@ -1,14 +1,11 @@
 import { CheckCircle2 } from "lucide-react";
 import PageHeader from "@/components/shell/PageHeader";
 import EmptyState from "@/components/EmptyState";
+import RealtimeRefresher from "@/components/RealtimeRefresher";
 import ApprovalCard from "@/components/approvals/ApprovalCard";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { EngagementRow } from "@/lib/db-types";
-
-// ─────────────────────────────────────────────────────────────
-// Phase 4: Realtime — subscribe to engagements UPDATEs and refilter.
-// ─────────────────────────────────────────────────────────────
 
 export const metadata = { title: "Approvals — DTE GES" };
 
@@ -26,9 +23,15 @@ export default async function ApprovalsPage() {
 
   return (
     <>
+      <RealtimeRefresher table="engagements" />
+      <RealtimeRefresher table="engagement_approvals" />
       <PageHeader
         title="Approvals"
-        subtitle="Engagements awaiting CPA sign-off."
+        subtitle={
+          items.length === 1
+            ? "1 engagement is waiting for CPA sign-off."
+            : `${items.length} engagement${items.length === 1 ? "" : "s"} ${items.length === 1 ? "is" : "are"} waiting for CPA sign-off.`
+        }
       />
 
       {items.length === 0 ? (

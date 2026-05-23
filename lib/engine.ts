@@ -157,11 +157,6 @@ export async function preflightTransition(opts: {
   };
 }
 
-// Phase 4: TaxDome packet + HubSpot CRM update.
-// Intentionally a no-op for Phase 2. When the demo reaches RELEASED, we record
-// the audit event via the regular transition path; downstream system pings
-// happen later. Keep this signature stable so wiring later is one-line.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function triggerReleaseSideEffects(engagementId: string): void {
-  // no-op (Phase 4)
-}
+// Phase 4 — the RELEASED side-effects (packet generation, TaxDome, HubSpot)
+// are now wired in app/api/transition/route.ts itself. See lib/packet.ts and
+// lib/integrations.ts.

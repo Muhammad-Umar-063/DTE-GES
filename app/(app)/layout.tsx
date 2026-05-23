@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Header from "@/components/shell/Header";
 import Sidebar from "@/components/shell/Sidebar";
+import RealtimeRefresher from "@/components/RealtimeRefresher";
 import { ToastProvider } from "@/components/toast/ToastProvider";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -27,6 +28,7 @@ export default async function AppLayout({
 
   return (
     <ToastProvider>
+      <RealtimeRefresher table="engagements" />
       <div className="min-h-screen flex flex-col bg-surface-2">
         <Header session={session} />
         <div className="flex flex-1 min-h-0">

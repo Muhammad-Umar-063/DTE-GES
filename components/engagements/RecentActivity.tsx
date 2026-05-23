@@ -1,11 +1,8 @@
 import Link from "next/link";
+import RealtimeRefresher from "@/components/RealtimeRefresher";
 import { createClient } from "@/lib/supabase/server";
 import { isToday, isYesterday, relativeTime } from "@/lib/time";
 import type { EngagementEventRow } from "@/lib/db-types";
-
-// ─────────────────────────────────────────────────────────────
-// Phase 4: Realtime — subscribe to engagement_events INSERTs and prepend.
-// ─────────────────────────────────────────────────────────────
 
 const DOT_COLOR: Record<string, string> = {
   engagement_created: "bg-primary",
@@ -127,6 +124,7 @@ export default async function RecentActivity({
         "w-full lg:w-[280px] lg:flex-shrink-0 card " + (className ?? "")
       }
     >
+      <RealtimeRefresher table="engagement_events" />
       <h3 className="text-card-title mb-3">Recent activity</h3>
       {events.length === 0 ? (
         <p className="text-body text-text-muted text-center py-2">

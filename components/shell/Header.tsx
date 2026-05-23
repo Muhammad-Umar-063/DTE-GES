@@ -1,4 +1,5 @@
-import { Bell, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
+import NotificationBell from "@/components/shell/NotificationBell";
 import type { SessionContext } from "@/lib/auth";
 
 function initials(name: string | null, fallback: string) {
@@ -9,8 +10,6 @@ function initials(name: string | null, fallback: string) {
 }
 
 export default function Header({ session }: { session: SessionContext }) {
-  const unreadCount = 0; // Phase 4: real notifications
-
   return (
     <header className="h-[52px] flex-shrink-0 bg-surface border-b border-border flex items-center justify-between px-page-x">
       <div className="flex items-center gap-3">
@@ -22,18 +21,7 @@ export default function Header({ session }: { session: SessionContext }) {
       <div className="flex items-center gap-4">
         <span className="text-label">Peach State CPA Group</span>
 
-        <button
-          type="button"
-          aria-label="Notifications"
-          className="relative w-8 h-8 inline-flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-surface-2 rounded-button transition"
-        >
-          <Bell className="w-4 h-4" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-pill bg-red text-white text-badge">
-              {unreadCount}
-            </span>
-          )}
-        </button>
+        <NotificationBell />
 
         <div className="flex items-center gap-2 pl-3 border-l border-border">
           <span

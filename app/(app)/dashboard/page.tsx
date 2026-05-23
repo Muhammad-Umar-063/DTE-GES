@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import PageHeader from "@/components/shell/PageHeader";
 import EngagementFilterPills, {
   type FilterKey,
@@ -5,6 +6,7 @@ import EngagementFilterPills, {
 import EngagementTable from "@/components/engagements/EngagementTable";
 import RecentActivity from "@/components/engagements/RecentActivity";
 import StatRow from "@/components/engagements/StatRow";
+import { SkeletonBlock, TableSkeleton } from "@/components/Skeleton";
 import { getSession } from "@/lib/auth";
 
 export const metadata = { title: "Command Center — DTE GES" };
@@ -24,7 +26,18 @@ export default async function DashboardPage({
         subtitle={`Welcome back, ${session?.fullName ?? session?.email ?? ""}.`}
       />
 
-      <StatRow className="mb-section" />
+      <Suspense
+        fallback={
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-card mb-section">
+            <div className="card"><SkeletonBlock rows={3} /></div>
+            <div className="card"><SkeletonBlock rows={3} /></div>
+            <div className="card"><SkeletonBlock rows={3} /></div>
+            <div className="card"><SkeletonBlock rows={3} /></div>
+          </div>
+        }
+      >
+        <StatRow className="mb-section" />
+      </Suspense>
 
       <div className="flex flex-col lg:flex-row gap-section">
         <div className="flex-1 min-w-0">
@@ -32,10 +45,21 @@ export default async function DashboardPage({
             <h2 className="text-section-title">Active engagements</h2>
             <EngagementFilterPills />
           </div>
-          <EngagementTable scope="active" filter={filter} />
+          <Suspense fallback={<TableSkeleton rows={6} />}>
+            <EngagementTable scope="active" filter={filter} />
+          </Suspense>
         </div>
 
-        <RecentActivity />
+        <Suspense
+          fallback={
+            <aside className="w-full lg:w-[280px] lg:flex-shrink-0 card">
+              <h3 className="text-card-title mb-3">Recent activity</h3>
+              <SkeletonBlock rows={6} />
+            </aside>
+          }
+        >
+          <RecentActivity />
+        </Suspense>
       </div>
     </>
   );

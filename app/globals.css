@@ -59,6 +59,26 @@ body {
   border-radius: 4px;
 }
 
+@keyframes row-flash {
+  0% {
+    background-color: rgba(26, 95, 180, 0.18);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @layer components {
   .text-page-title {
     font-size: 20px;

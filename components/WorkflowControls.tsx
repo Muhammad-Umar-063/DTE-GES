@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
+import { useRealtimeChannel } from "@/lib/hooks/useRealtimeChannel";
 import {
   AlertTriangle,
   ChevronRight,
@@ -79,6 +80,17 @@ export default function WorkflowControls({
     description?: string;
   } | null>(null);
 
+  // Live gate unlock: an approval granted in another session arrives here as
+  // a postgres_changes INSERT; refresh the route so hasApproval reflects.
+  const onApprovalChange = useCallback(() => {
+    router.refresh();
+  }, [router]);
+  useRealtimeChannel({
+    table: "engagement_approvals",
+    filter: `engagement_id=eq.${engagementId}`,
+    onChange: onApprovalChange,
+  });
+
   // ── engine callers ──────────────────────────────────────────
   async function callTransition(
     toState: EngagementState,
@@ -101,7 +113,19 @@ export default function WorkflowControls({
         });
         return;
       }
-      showToast({ message: "Transition recorded.", type: "success" });
+      const successMsg =
+        toState === "APPROVED"
+          ? "Approved. Audit record created."
+          : toState === "RELEASED"
+            ? "Released. Packet generated, sent to TaxDome, CRM updated."
+            : toState === "ESCALATED"
+              ? "Escalated. The engagement is paused until resolved."
+              : toState === "ARCHIVED"
+                ? "Archived. The engagement is closed."
+                : toState === "ROLLED_BACK"
+                  ? "Rolled back. Returned to execution for revision."
+                  : "Transition recorded. Audit trail updated.";
+      showToast({ message: successMsg, type: "success" });
       router.refresh();
     } catch {
       showToast({ message: ERROR_COPY.network, type: "error" });
@@ -128,7 +152,10 @@ export default function WorkflowControls({
         });
         return;
       }
-      showToast({ message: "Approval granted.", type: "success" });
+      showToast({
+        message: "Approval recorded. Gate unlocked.",
+        type: "success",
+      });
       router.refresh();
     } catch {
       showToast({ message: ERROR_COPY.network, type: "error" });
