@@ -29,6 +29,14 @@ Internal operating system for **Peach State CPA Group**. An institutional-grade 
 
 The SRS calls the governance logic "Edge Functions"; we deploy it as Next.js Route Handlers under a single Vercel artifact — see [supabase/functions/README.md](supabase/functions/README.md) for the mapping.
 
+## UML diagrams
+
+Architecture, state-machine, and data-flow diagrams are bundled separately:
+
+[hms_uml_diagrams.zip](https://github.com/user-attachments/files/28181685/hms_uml_diagrams.zip)
+
+Download and unzip to view the diagrams alongside the code.
+
 ## Local setup
 
 ### 1. Install
