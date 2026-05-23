@@ -1,10 +1,21 @@
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
+import { LogIn, LogOut, Sparkles } from "lucide-react";
 import PageHeader from "@/components/shell/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import AuditFilters from "@/components/audit/AuditFilters";
 import { createClient } from "@/lib/supabase/server";
+import { relativeTime } from "@/lib/time";
 import type { EngagementEventRow, EngagementRow } from "@/lib/db-types";
+
+type UserSessionRow = {
+  id: string;
+  user_id: string;
+  user_role: string;
+  event_type: "sign_in" | "sign_out";
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+};
 
 export const metadata = { title: "Audit — DTE GES" };
 
@@ -68,19 +79,45 @@ export default async function AuditPage({
     query = query.lte("timestamp", end.toISOString());
   }
 
-  const [{ data: evtData }, { data: engData }] = await Promise.all([
-    query,
-    supabase
-      .from("engagements")
-      .select("id, engagement_id, client_name")
-      .order("engagement_id"),
-  ]);
+  const [{ data: evtData }, { data: engData }, { data: sessData }] =
+    await Promise.all([
+      query,
+      supabase
+        .from("engagements")
+        .select("id, engagement_id, client_name")
+        .order("engagement_id"),
+      supabase
+        .from("user_sessions")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(20),
+    ]);
   const events = (evtData ?? []) as EngagementEventRow[];
   const engagements = (engData ?? []) as Pick<
     EngagementRow,
     "id" | "engagement_id" | "client_name"
   >[];
+  const sessions = (sessData ?? []) as UserSessionRow[];
   const engMap = new Map(engagements.map((e) => [e.id, e.engagement_id]));
+
+  // Resolve user_id -> full_name + email for the session rows.
+  const sessionUserIds = Array.from(new Set(sessions.map((s) => s.user_id)));
+  const { data: sessUsersData } = await supabase
+    .from("users")
+    .select("id, full_name, email")
+    .in(
+      "id",
+      sessionUserIds.length > 0
+        ? sessionUserIds
+        : ["00000000-0000-0000-0000-000000000000"],
+    );
+  const sessUserMap = new Map(
+    ((sessUsersData ?? []) as Array<{
+      id: string;
+      full_name: string;
+      email: string;
+    }>).map((u) => [u.id, u]),
+  );
 
   return (
     <>
@@ -94,6 +131,109 @@ export default async function AuditPage({
           APPEND ONLY — No UPDATE or DELETE permission for any role
         </p>
       </div>
+
+      <div className="card mb-section">
+        <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+          <h3 className="text-card-title">
+            Recent login sessions —{" "}
+            <span className="text-mono">user_sessions</span>
+          </h3>
+          <div className="flex items-center gap-2">
+            <span className="text-label">{sessions.length} latest</span>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-pill bg-red-light text-red text-badge uppercase tracking-wide">
+              Append only
+            </span>
+          </div>
+        </div>
+        {sessions.length === 0 ? (
+          <p className="text-body text-text-muted text-center py-4">
+            No login activity recorded yet.
+          </p>
+        ) : (
+          <div className="overflow-x-auto -mx-card">
+            <table className="w-full border-collapse text-body">
+              <thead>
+                <tr className="text-label">
+                  <th className="px-card py-2 text-left font-bold">When</th>
+                  <th className="px-card py-2 text-left font-bold">User</th>
+                  <th className="px-card py-2 text-left font-bold">Role</th>
+                  <th className="px-card py-2 text-left font-bold">Event</th>
+                  <th className="px-card py-2 text-left font-bold">IP</th>
+                  <th className="px-card py-2 text-left font-bold">
+                    User Agent
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {sessions.map((s) => {
+                  const u = sessUserMap.get(s.user_id);
+                  const isSignIn = s.event_type === "sign_in";
+                  return (
+                    <tr
+                      key={s.id}
+                      className="border-t border-border hover:bg-blue-light/40 transition"
+                    >
+                      <td className="px-card py-2 align-middle whitespace-nowrap">
+                        <span className="text-body text-text-primary">
+                          {relativeTime(s.created_at)}
+                        </span>
+                        <div className="text-label mt-0.5 text-mono">
+                          {new Date(s.created_at).toLocaleString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      </td>
+                      <td className="px-card py-2 align-middle">
+                        <div className="text-card-title text-text-primary">
+                          {u?.full_name ?? "—"}
+                        </div>
+                        <div className="text-label mt-0.5">
+                          {u?.email ?? ""}
+                        </div>
+                      </td>
+                      <td className="px-card py-2 align-middle">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-pill bg-surface-2 text-text-secondary text-badge uppercase tracking-wide">
+                          {s.user_role}
+                        </span>
+                      </td>
+                      <td className="px-card py-2 align-middle">
+                        <span
+                          className={
+                            "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-pill text-badge uppercase tracking-wide " +
+                            (isSignIn
+                              ? "bg-green-light text-green"
+                              : "bg-surface-3 text-text-secondary")
+                          }
+                        >
+                          {isSignIn ? (
+                            <LogIn className="w-3 h-3" aria-hidden />
+                          ) : (
+                            <LogOut className="w-3 h-3" aria-hidden />
+                          )}
+                          {isSignIn ? "Signed in" : "Signed out"}
+                        </span>
+                      </td>
+                      <td className="px-card py-2 align-middle text-mono text-text-secondary">
+                        {s.ip_address ?? "—"}
+                      </td>
+                      <td className="px-card py-2 align-middle">
+                        <span className="text-body text-text-secondary line-clamp-1 max-w-xs inline-block">
+                          {s.user_agent ?? "—"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <h2 className="text-section-title mb-3">Engagement events</h2>
 
       <AuditFilters
         className="mb-section"

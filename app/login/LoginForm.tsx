@@ -29,6 +29,20 @@ export default function LoginForm() {
       return;
     }
 
+    // Record the sign-in in the user_sessions audit table. We await this so the
+    // row is on disk before the redirect (matters if the next page is /audit).
+    // Failures here are non-blocking — auth succeeded; we don't want a session
+    // log hiccup to block the user from reaching the app.
+    try {
+      await fetch("/api/auth/log-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event: "sign_in" }),
+      });
+    } catch {
+      // ignore — sign-in still succeeded
+    }
+
     router.push("/dashboard");
     router.refresh();
   }
