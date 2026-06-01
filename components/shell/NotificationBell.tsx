@@ -105,15 +105,15 @@ export default function NotificationBell() {
       {open && (
         <div className="absolute right-0 top-full mt-2 w-80 card shadow-card-hover z-40 p-0 overflow-hidden">
           <div className="px-card py-3 border-b border-border">
-            <h3 className="text-card-title">Recent activity</h3>
+            <h3 className="text-card-title">Recent activity in your firm</h3>
             <p className="text-label mt-0.5">
-              Approvals, escalations, and state changes
+              Approvals, flags, and status changes
             </p>
           </div>
           <div className="max-h-[60vh] overflow-y-auto">
             {recents.length === 0 ? (
               <p className="text-body text-text-muted text-center py-6">
-                Nothing yet — you&apos;re all caught up.
+                All caught up.
               </p>
             ) : (
               <ul>
@@ -170,8 +170,8 @@ export default function NotificationBell() {
 }
 
 const LABELS: Record<string, string> = {
-  stage_transition: "Stage transition",
-  approval_granted: "Approval granted",
-  escalation_created: "Engagement escalated",
-  gate_blocked: "Approval gate blocked",
+  stage_transition: "Status changed",
+  approval_granted: "Approval given",
+  escalation_created: "Marked as needing attention",
+  gate_blocked: "Action blocked — approval needed first",
 };

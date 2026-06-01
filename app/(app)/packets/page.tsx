@@ -5,7 +5,7 @@ import PacketsTable, { type PacketRowVM } from "@/components/packets/PacketsTabl
 import { createClient } from "@/lib/supabase/server";
 import type { RuntimePacketRow, EngagementRow } from "@/lib/db-types";
 
-export const metadata = { title: "Runtime Packets — DTE GES" };
+export const metadata = { title: "Packets — DTE GES" };
 
 export default async function PacketsPage() {
   const supabase = createClient();
@@ -20,14 +20,14 @@ export default async function PacketsPage() {
     return (
       <>
         <PageHeader
-          title="Runtime Packets"
-          subtitle="Serialised engagement state for downstream systems."
+          title="Packets"
+          subtitle="The permanent record of every engagement you've sent."
         />
         <div className="card">
           <EmptyState
             icon={Package}
-            title="No runtime packets generated yet."
-            description="Packets are produced when an engagement reaches the Release phase."
+            title="No engagements have been packaged yet."
+            description="Packages are created automatically when you send an engagement to the client."
           />
         </div>
       </>
@@ -77,8 +77,8 @@ export default async function PacketsPage() {
   return (
     <>
       <PageHeader
-        title="Runtime Packets"
-        subtitle="Serialised engagement state for downstream systems."
+        title="Packets"
+        subtitle="The permanent record of every engagement you've sent."
       />
       <PacketsTable rows={rows} />
     </>

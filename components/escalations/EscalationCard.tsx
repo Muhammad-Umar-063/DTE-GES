@@ -12,11 +12,11 @@ import type { EngagementRow } from "@/lib/db-types";
 import type { EngagementState } from "@/lib/supabase/database.types";
 
 const ERROR_COPY: Record<string, string> = {
-  invalid_transition: "This transition is not permitted from the current state.",
-  insufficient_role: "You do not have permission to perform this action.",
-  network: "Connection issue. Please try again.",
+  invalid_transition: "That isn't a valid next step from where this engagement is now.",
+  insufficient_role: "You don't have permission to do that.",
+  network: "Connection hiccup. Try again in a moment.",
   server_error:
-    "Something went wrong. The action was not completed. Please try again.",
+    "We couldn't save that. Try again in a moment — your work is safe.",
 };
 
 export type EscalationCardProps = {
@@ -68,7 +68,7 @@ export default function EscalationCard({
         return;
       }
       showToast({
-        message: `Escalation resolved — ${engagement.client_name} returned to ${STATE_DISPLAY[toState].label}.`,
+        message: `${engagement.client_name} is back on track. ✓`,
         type: "success",
       });
       setDismissed(true);
@@ -88,7 +88,7 @@ export default function EscalationCard({
   return (
     <div
       className={
-        "card border-l-4 border-l-red transition-all duration-200 " +
+        "card border-l-4 border-l-red transition-all duration-200 animate-content-reveal " +
         (className ?? "")
       }
     >
@@ -97,11 +97,12 @@ export default function EscalationCard({
           <h3 className="text-section-title text-text-primary">
             {engagement.client_name}
           </h3>
-          <div className="text-mono text-text-muted mt-0.5">
-            {engagement.engagement_id}
-            <span className="mx-2">·</span>
-            <span className="font-bold">{engagement.service_line}</span>{" "}
+          <div className="text-body text-text-secondary mt-0.5">
             {getServiceLineName(engagement.service_line)}
+            <span className="mx-1.5 text-text-muted">·</span>
+            <span className="text-mono text-text-muted">
+              {engagement.engagement_id}
+            </span>
           </div>
         </div>
         <EngagementStateBadge state={engagement.current_state} />
@@ -123,7 +124,7 @@ export default function EscalationCard({
 
       {missingDocs.length > 0 && (
         <div className="mb-3">
-          <div className="text-label mb-1.5">Documents missing</div>
+          <div className="text-label mb-1.5">Documents still missing</div>
           <ul className="flex flex-col gap-1">
             {missingDocs.map((d) => (
               <li key={d} className="flex items-center gap-2">
@@ -140,22 +141,23 @@ export default function EscalationCard({
           type="button"
           onClick={() => setOpen(true)}
           disabled={!isAllowed || pending}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-button bg-red text-white text-card-title hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed transition"
+          className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-button bg-red text-white text-card-title hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed transition"
         >
-          <AlertTriangle className="w-4 h-4" aria-hidden /> Resolve Escalation
+          <AlertTriangle className="w-4 h-4" aria-hidden /> See what&apos;s wrong
         </button>
         <Link
           href={`/engagements/${engagement.id}`}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-button border border-border bg-surface text-text-primary text-card-title hover:bg-surface-2 transition"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-button border border-border bg-surface text-text-secondary text-card-title hover:bg-surface-2 transition"
         >
-          View Engagement <ChevronRight className="w-4 h-4" aria-hidden />
+          Open engagement <ChevronRight className="w-4 h-4" aria-hidden />
         </Link>
       </div>
 
       <ConfirmDialog
         open={open}
-        title={`Resolve escalation — ${engagement.client_name}`}
-        confirmLabel={`Resolve and Return to ${STATE_DISPLAY[toState].label}`}
+        title={`Get ${engagement.client_name} back on track`}
+        description="Once you resolve this, the engagement picks up from where it was. Your note is saved to the history so the team knows what happened."
+        confirmLabel={`Resolve and continue from ${STATE_DISPLAY[toState].label}`}
         cancelLabel="Cancel"
         onConfirm={async () => {
           await resolve();
@@ -165,7 +167,7 @@ export default function EscalationCard({
         <div className="flex flex-col gap-3">
           <div>
             <label htmlFor="return-state" className="text-label block mb-1.5">
-              Return to state
+              Continue from
             </label>
             <select
               id="return-state"
@@ -182,14 +184,15 @@ export default function EscalationCard({
           </div>
           <div>
             <label htmlFor="resolution-notes" className="text-label block mb-1.5">
-              Resolution notes (optional)
+              A quick note (optional)
             </label>
             <textarea
               id="resolution-notes"
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 text-body text-text-primary bg-surface border border-border rounded-input focus:outline-none focus:border-primary resize-y"
+              placeholder="e.g. The missing W-2 came in this morning, all clear to continue."
+              className="w-full px-3 py-2 text-body text-text-primary bg-surface border border-border rounded-input focus:outline-none focus:border-primary resize-y placeholder:text-text-muted"
             />
           </div>
         </div>

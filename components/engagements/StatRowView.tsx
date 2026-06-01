@@ -45,34 +45,40 @@ export default function StatRowView({
       }
     >
       <StatCard
+        className="animate-content-reveal stagger-1"
         value={counts.active}
         label={`${counts.active === 1 ? "Active engagement" : "Active engagements"}`}
-        sublabel="Currently in progress"
+        sublabel="In progress right now"
         color="primary"
       />
       <StatCard
+        className="animate-content-reveal stagger-2"
         value={counts.awaitingApproval}
-        label="Awaiting your approval"
+        label="Waiting on me"
         sublabel={
           counts.awaitingApproval > 0
-            ? "Approval gate blocked"
-            : "Nothing waiting — you're clear"
+            ? "Engagements need your approval"
+            : "Nothing waiting on you"
         }
         color="amber"
         pulse={counts.awaitingApproval > 0}
       />
       <StatCard
+        className="animate-content-reveal stagger-3"
         value={counts.escalated}
-        label={`${counts.escalated === 1 ? "Active escalation" : "Active escalations"}`}
+        label="Flagged"
         sublabel={
-          counts.escalated > 0 ? "Require resolution" : "All moving normally"
+          counts.escalated > 0
+            ? "Engagements need attention"
+            : "Everything's moving normally"
         }
         color="red"
       />
       <StatCard
+        className="animate-content-reveal stagger-4"
         value={counts.releasedThisWeek}
-        label="Released this week"
-        sublabel="Packets delivered"
+        label="Sent this week"
+        sublabel="Engagements delivered to clients"
         color="green"
       />
     </div>

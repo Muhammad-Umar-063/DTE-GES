@@ -109,7 +109,7 @@ function buildTemplatePacket(
     ``,
     `APPROVALS & GOVERNANCE`,
     approvalCount > 0
-      ? `CPA approval was recorded ${approvalCount === 1 ? "once" : `${approvalCount} times`} for this engagement, in line with firm governance policy. The complete audit trail is preserved in the engagement_events log.`
+      ? `CPA approval was recorded ${approvalCount === 1 ? "once" : `${approvalCount} times`} for this engagement, in line with firm governance policy. The complete history of every action is preserved permanently.`
       : `No formal CPA approval was recorded; release was processed under standing policy.`,
     ``,
     `SCOPE OF DELIVERY`,
@@ -268,7 +268,7 @@ export async function generatePacketForEngagement(
         ai_used: aiUsed,
         model: aiUsed ? CLAUDE_MODEL : "template_v1",
       },
-      notes: `Runtime packet ${finalPacketId} stored.`,
+      notes: `Engagement record ${finalPacketId} saved.`,
     },
   ]);
 

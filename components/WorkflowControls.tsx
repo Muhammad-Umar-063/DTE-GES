@@ -18,21 +18,23 @@ import {
   findTransition,
   getAvailableTransitions,
   getPhaseForState,
+  getTransitionLabel,
 } from "@/lib/workflow";
 import type { EngagementState, AppRole } from "@/lib/supabase/database.types";
 
 // ─────────────────────────────────────────────────────────────
 // SRS §14 — plain-English error copy by error code returned from the engine.
+// Phase 5 tone: lead with what to do, not "Error 500."
 // ─────────────────────────────────────────────────────────────
 const ERROR_COPY: Record<string, string> = {
-  invalid_transition: "This transition is not permitted from the current state.",
-  insufficient_role: "You do not have permission to perform this action.",
+  invalid_transition: "That isn't a valid next step from where this engagement is now.",
+  insufficient_role: "You don't have permission to do that. Ask a CPA to take this action.",
   gate_blocked:
-    "This transition is blocked by a missing approval. Grant CPA approval to continue.",
-  reason_required: "A reason is required for this action.",
-  network: "Connection issue. Please try again.",
+    "Approval is needed first. Approve this engagement before continuing.",
+  reason_required: "Add a quick note explaining the change before continuing.",
+  network: "Connection hiccup. Try again in a moment.",
   server_error:
-    "Something went wrong. The action was not completed. Please try again.",
+    "We couldn't save that. Try again in a moment — your work is safe.",
 };
 
 const IRREVERSIBLE_TARGETS = new Set<EngagementState>([
@@ -115,16 +117,16 @@ export default function WorkflowControls({
       }
       const successMsg =
         toState === "APPROVED"
-          ? "Approved. Audit record created."
+          ? "Approved. The team can continue. ✓"
           : toState === "RELEASED"
-            ? "Released. Packet generated, sent to TaxDome, CRM updated."
+            ? "Sent to client. Package delivered, CRM updated. ✓"
             : toState === "ESCALATED"
-              ? "Escalated. The engagement is paused until resolved."
+              ? "Flagged. This engagement now shows in your attention list. ✓"
               : toState === "ARCHIVED"
-                ? "Archived. The engagement is closed."
+                ? "Engagement closed. It's saved in your history. ✓"
                 : toState === "ROLLED_BACK"
-                  ? "Rolled back. Returned to execution for revision."
-                  : "Transition recorded. Audit trail updated.";
+                  ? "Sent back to the team. They can make the changes you asked for. ✓"
+                  : "Done. The change is saved to the history. ✓";
       showToast({ message: successMsg, type: "success" });
       router.refresh();
     } catch {
@@ -153,7 +155,7 @@ export default function WorkflowControls({
         return;
       }
       showToast({
-        message: "Approval recorded. Gate unlocked.",
+        message: "Approved. The team can continue. ✓",
         type: "success",
       });
       router.refresh();
@@ -202,7 +204,7 @@ export default function WorkflowControls({
         onResolve={(toState) =>
           clickTransition({
             toState,
-            label: `Resolve Escalation and Return to ${STATE_DISPLAY[toState].label}`,
+            label: `Resolve and continue from ${STATE_DISPLAY[toState].label}`,
           })
         }
       />
@@ -215,14 +217,14 @@ export default function WorkflowControls({
         pending={pending}
         onGrantApproval={callGrantApproval}
         onAdvance={() =>
-          clickTransition({ toState: "APPROVED", label: "Advance to Approved" })
+          clickTransition({ toState: "APPROVED", label: "Approve and continue" })
         }
         onReturnToExecution={() =>
           clickTransition({
             toState: "ROLLED_BACK",
-            label: "Return to Execution",
+            label: "Send back to the team",
             description:
-              "This rolls the engagement back so execution can be revised.",
+              "Sending this back lets the team make changes. They'll see it in their list and can pick up where they left off.",
           })
         }
       />
@@ -232,8 +234,8 @@ export default function WorkflowControls({
       <TerminalView
         message={
           currentState === "RELEASED"
-            ? "This engagement has been completed and released."
-            : "This engagement is archived."
+            ? "This engagement has been sent to the client. Everything's recorded in the history."
+            : "This engagement is closed. Everything's saved in the history."
         }
       />
     );
@@ -250,16 +252,15 @@ export default function WorkflowControls({
   }
 
   return (
-    <div className={"card " + (className ?? "")}>
-      <h3 className="text-card-title mb-3">Workflow controls</h3>
+    <div className={"card border-2 border-primary/15 shadow-card-hover " + (className ?? "")}>
+      <h3 className="text-card-title mb-3">What you can do next</h3>
       {body}
 
       <div className="mt-4 rounded-card bg-surface-2 border border-border px-3 py-2.5">
         <div className="flex items-start gap-2">
           <ShieldCheck className="w-3.5 h-3.5 text-text-muted flex-shrink-0 mt-0.5" aria-hidden />
           <p className="text-body text-text-secondary">
-            All workflow movements are governed, logged, and cannot be undone.
-            Every action creates a permanent audit record.
+            Every action you take here is saved to the history.
           </p>
         </div>
       </div>
@@ -267,16 +268,14 @@ export default function WorkflowControls({
       {confirm && (
         <ConfirmDialog
           open
-          title={`Confirm: ${confirm.label}`}
-          description={confirm.description}
+          title={confirm.label}
+          description={confirm.description ?? confirmDescriptionFor(confirm.toState)}
           confirmLabel={confirm.label}
           danger={confirm.danger}
           requireReason={confirm.requireReason}
-          reasonLabel={
-            confirm.toState === "ESCALATED"
-              ? "Escalation reason (required)"
-              : "Reason (required)"
-          }
+          reasonLabel={reasonLabelFor(confirm.toState)}
+          reasonPlaceholder={reasonPlaceholderFor(confirm.toState)}
+          reasonPrompt={reasonPromptFor(confirm.toState)}
           onConfirm={async (reason) => {
             await callTransition(confirm.toState, reason);
           }}
@@ -285,6 +284,50 @@ export default function WorkflowControls({
       )}
     </div>
   );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Confirm dialog copy (Phase 5 — friendly framing, no "cannot be undone")
+// ─────────────────────────────────────────────────────────────
+
+function confirmDescriptionFor(toState: EngagementState): string | undefined {
+  switch (toState) {
+    case "APPROVED":
+      return "Approving this engagement will allow the team to send the work to the client. This approval will be recorded in the history.";
+    case "RELEASED":
+      return "This will send the engagement package to the client and update your CRM. You can always look back at the full history afterward.";
+    case "ARCHIVED":
+      return "Closing this engagement keeps everything in the history. Anyone in your firm can look back at it later.";
+    case "ESCALATED":
+      return "Flag this engagement so it shows up in your attention list. Add a quick note so the team knows what to do.";
+    case "ROLLED_BACK":
+      return "Sending this back lets the team make changes. They'll see it in their list and can pick up where they left off.";
+    default:
+      return undefined;
+  }
+}
+
+function reasonLabelFor(toState: EngagementState): string {
+  if (toState === "ESCALATED") return "Reason for flagging (required)";
+  return "A quick note (required)";
+}
+
+function reasonPromptFor(toState: EngagementState): string | undefined {
+  if (toState === "ESCALATED") {
+    return "What needs attention? A short note helps the team know what to do.";
+  }
+  return "What changed? A quick note helps the team.";
+}
+
+function reasonPlaceholderFor(toState: EngagementState): string {
+  switch (toState) {
+    case "ESCALATED":
+      return "e.g. Client hasn't sent the missing W-2 yet — paused until we hear back.";
+    case "ROLLED_BACK":
+      return "e.g. The numbers on page 3 need a recheck before I can approve.";
+    default:
+      return "e.g. Sending this back to be redone before the next step.";
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -314,8 +357,7 @@ function EscalatedView({
             aria-hidden
           />
           <p className="text-body text-red leading-snug">
-            This engagement is escalated and cannot advance until the escalation
-            is resolved.
+            This engagement needs attention before it can keep moving.
           </p>
         </div>
       </div>
@@ -324,23 +366,20 @@ function EscalatedView({
         type="button"
         onClick={() => onResolve(previousState)}
         disabled={pending !== null || !allowed}
-        className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-button bg-red text-white text-card-title hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed transition"
-        title={
-          !allowed ? `Requires role: ${t?.allowedRoles.join(" or ")}` : undefined
-        }
+        className="w-full inline-flex items-center justify-center gap-2 px-3 py-3 rounded-button bg-red text-white text-card-title hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed transition"
+        title={!allowed ? "Only a CPA or staff member can resolve this." : undefined}
       >
         <RotateCcw className="w-4 h-4" aria-hidden />
         {pending === previousState
-          ? "Resolving…"
-          : `Resolve Escalation and Return to ${STATE_DISPLAY[previousState].label}`}
+          ? "Working…"
+          : `Resolve and continue from ${STATE_DISPLAY[previousState].label}`}
       </button>
 
       <div className="mt-3 rounded-card bg-surface-2 border border-border px-3 py-2.5">
         <p className="text-body text-text-secondary">
-          An escalation means the engagement cannot move forward as-is — typically
-          due to missing documents, unresolved variances, or a policy block.
-          Resolving returns the engagement to its prior workflow state so work can
-          continue.
+          Flagged engagements pause until someone resolves them — usually a
+          missing document or something that needs a closer look. Once you
+          resolve it, the engagement picks up from where it was.
         </p>
       </div>
     </>
@@ -374,8 +413,8 @@ function ReviewRequiredView({
               aria-hidden
             />
             <p className="text-body text-amber leading-snug">
-              Approval required before this engagement can advance. Grant your
-              formal CPA approval below to unlock the next stage.
+              The team finished the work and is waiting for your approval to
+              send it to the client.
             </p>
           </div>
         </div>
@@ -384,27 +423,23 @@ function ReviewRequiredView({
           type="button"
           onClick={onGrantApproval}
           disabled={pending !== null || !isCpa}
-          title={!isCpa ? "Requires role: cpa" : undefined}
-          className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-button bg-primary text-white text-card-title hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed transition"
+          title={!isCpa ? "Only a CPA can approve." : undefined}
+          className="w-full inline-flex items-center justify-center gap-2 px-3 py-3 rounded-button bg-primary text-white text-card-title hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed transition"
         >
           <CheckCircle2 className="w-4 h-4" aria-hidden />
-          {pending === "APPROVE_GATE" ? "Granting…" : "Grant CPA Approval"}
+          {pending === "APPROVE_GATE" ? "Working…" : "Approve this engagement"}
         </button>
 
         <button
           type="button"
           onClick={onReturnToExecution}
           disabled={pending !== null || !isCpa}
-          title={!isCpa ? "Requires role: cpa" : undefined}
-          className="mt-2 w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-button border border-border bg-surface text-text-primary text-card-title hover:bg-surface-2 disabled:opacity-60 disabled:cursor-not-allowed transition"
+          title={!isCpa ? "Only a CPA can send this back." : undefined}
+          className="mt-2 w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-button border border-border bg-surface text-text-secondary text-body hover:bg-surface-2 disabled:opacity-60 disabled:cursor-not-allowed transition"
         >
           <RotateCcw className="w-3.5 h-3.5" aria-hidden />
-          Return to Execution (requires reason)
+          Send back to the team
         </button>
-
-        <p className="text-label mt-3 text-center">
-          Your approval creates a permanent record in the system.
-        </p>
       </>
     );
   }
@@ -418,7 +453,7 @@ function ReviewRequiredView({
             aria-hidden
           />
           <p className="text-body text-green leading-snug">
-            CPA approval on record. Gate unlocked.
+            You&apos;ve approved this engagement. Ready to continue.
           </p>
         </div>
       </div>
@@ -427,22 +462,22 @@ function ReviewRequiredView({
         type="button"
         onClick={onAdvance}
         disabled={pending !== null || !isCpa}
-        title={!isCpa ? "Requires role: cpa" : undefined}
-        className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-button bg-primary text-white text-card-title hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed transition"
+        title={!isCpa ? "Only a CPA can continue." : undefined}
+        className="w-full inline-flex items-center justify-center gap-2 px-3 py-3 rounded-button bg-primary text-white text-card-title hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed transition"
       >
         <ChevronRight className="w-4 h-4" aria-hidden />
-        {pending === "APPROVED" ? "Advancing…" : "Advance to Approved"}
+        {pending === "APPROVED" ? "Working…" : "Approve and continue"}
       </button>
 
       <button
         type="button"
         onClick={onReturnToExecution}
         disabled={pending !== null || !isCpa}
-        title={!isCpa ? "Requires role: cpa" : undefined}
-        className="mt-2 w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-button border border-border bg-surface text-text-primary text-card-title hover:bg-surface-2 disabled:opacity-60 disabled:cursor-not-allowed transition"
+        title={!isCpa ? "Only a CPA can send this back." : undefined}
+        className="mt-2 w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-button border border-border bg-surface text-text-secondary text-body hover:bg-surface-2 disabled:opacity-60 disabled:cursor-not-allowed transition"
       >
         <RotateCcw className="w-3.5 h-3.5" aria-hidden />
-        Return to Execution
+        Send back to the team
       </button>
     </>
   );
@@ -496,7 +531,7 @@ function ForwardView({
     return (
       <div className="rounded-card bg-surface-2 border border-border p-3">
         <p className="text-body text-text-secondary">
-          No actions available from this state for your role.
+          Nothing for you to do here right now.
         </p>
       </div>
     );
@@ -504,24 +539,21 @@ function ForwardView({
 
   return (
     <>
-      <div className="text-label mb-2">Next step</div>
+      <div className="text-label mb-2">Your next step</div>
 
       {primary && (
         <button
           type="button"
           onClick={() =>
-            onTransition(
-              primary.toState,
-              `Advance to ${STATE_DISPLAY[primary.toState].label}`,
-            )
+            onTransition(primary.toState, getTransitionLabel(primary.toState))
           }
           disabled={pending !== null}
-          className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-button bg-primary text-white text-card-title hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed transition"
+          className="w-full inline-flex items-center justify-center gap-2 px-3 py-3 rounded-button bg-primary text-white text-card-title hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed transition"
         >
           <ChevronRight className="w-4 h-4" aria-hidden />
           {pending === primary.toState
             ? "Working…"
-            : `Advance to ${STATE_DISPLAY[primary.toState].label}`}
+            : getTransitionLabel(primary.toState)}
         </button>
       )}
 
@@ -530,12 +562,9 @@ function ForwardView({
           {otherForwards.map((t) => (
             <li key={t.toState}>
               <SecondaryButton
-                label={STATE_DISPLAY[t.toState].label}
+                label={getTransitionLabel(t.toState)}
                 onClick={() =>
-                  onTransition(
-                    t.toState,
-                    `Advance to ${STATE_DISPLAY[t.toState].label}`,
-                  )
+                  onTransition(t.toState, getTransitionLabel(t.toState))
                 }
                 pending={pending === t.toState}
                 disabled={pending !== null}
@@ -547,21 +576,19 @@ function ForwardView({
 
       {backwards.length > 0 && (
         <ul className="mt-2 flex flex-col gap-2">
-          {backwards.map((t) => (
-            <li key={t.toState}>
-              <SecondaryButton
-                label={`Return to ${STATE_DISPLAY[t.toState].label}${t.requiresReason ? " (requires reason)" : ""}`}
-                onClick={() =>
-                  onTransition(
-                    t.toState,
-                    `Return to ${STATE_DISPLAY[t.toState].label}`,
-                  )
-                }
-                pending={pending === t.toState}
-                disabled={pending !== null}
-              />
-            </li>
-          ))}
+          {backwards.map((t) => {
+            const label = `Go back to ${STATE_DISPLAY[t.toState].label}`;
+            return (
+              <li key={t.toState}>
+                <SecondaryButton
+                  label={label}
+                  onClick={() => onTransition(t.toState, label)}
+                  pending={pending === t.toState}
+                  disabled={pending !== null}
+                />
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -569,11 +596,11 @@ function ForwardView({
         <div className="mt-3 text-center">
           <button
             type="button"
-            onClick={() => onTransition("ESCALATED", "Escalate this engagement")}
+            onClick={() => onTransition("ESCALATED", "Flag this engagement")}
             disabled={pending !== null}
-            className="text-card-title text-red hover:underline disabled:opacity-60 disabled:cursor-not-allowed"
+            className="text-body text-red hover:underline disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Escalate this engagement
+            Flag this engagement
           </button>
         </div>
       )}

@@ -17,7 +17,7 @@ const FLASH_MS = 1500;
 
 function phaseLabel(phase: number): string {
   const ph = PHASES.find((p) => p.number === phase);
-  return ph ? `Phase ${ph.number} — ${ph.label}` : `Phase ${phase}`;
+  return ph ? ph.label : `Step ${phase}`;
 }
 
 export type EngagementTableViewProps = {
@@ -93,26 +93,31 @@ export default function EngagementTableView({
   }
 
   return (
-    <div className={"card overflow-hidden p-0 " + (className ?? "")}>
+    <div
+      className={
+        "card overflow-hidden p-0 animate-content-reveal " + (className ?? "")
+      }
+    >
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-body">
           <thead>
             <tr className="bg-surface-2 text-label">
               <th className="px-card py-2.5 text-left font-bold">Client</th>
-              <th className="px-card py-2.5 text-left font-bold">Service Line</th>
-              <th className="px-card py-2.5 text-left font-bold">Phase</th>
+              <th className="px-card py-2.5 text-left font-bold">Service line</th>
+              <th className="px-card py-2.5 text-left font-bold">Stage</th>
               <th className="px-card py-2.5 text-left font-bold">Status</th>
-              <th className="px-card py-2.5 text-left font-bold">Last Action</th>
+              <th className="px-card py-2.5 text-left font-bold">Last action</th>
               <th className="px-card py-2.5 text-left font-bold">Updated</th>
-              <th className="px-card py-2.5 text-right font-bold">Action</th>
+              <th className="px-card py-2.5 text-right font-bold"> </th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((eng) => (
+            {rows.map((eng, idx) => (
               <Row
                 key={eng.id}
                 engagement={eng}
                 flashing={flashIds.has(eng.id)}
+                rowIndex={idx}
               />
             ))}
           </tbody>
@@ -125,9 +130,11 @@ export default function EngagementTableView({
 function Row({
   engagement,
   flashing,
+  rowIndex,
 }: {
   engagement: EngagementRow;
   flashing: boolean;
+  rowIndex: number;
 }) {
   const isEscalated = engagement.current_state === "ESCALATED";
   const isReviewBlocked =
@@ -138,14 +145,21 @@ function Row({
       ? "bg-amber-light hover:bg-blue-light"
       : "bg-surface hover:bg-blue-light";
 
+  // Only stagger the first ~8 rows on initial paint; beyond that the cascade
+  // would feel slow. Realtime updates skip the reveal entirely (no animation
+  // class) and rely on the flash for movement.
+  const revealDelay = Math.min(rowIndex, 8) * 40;
+  const rowStyle: React.CSSProperties = flashing
+    ? { animation: `row-flash ${1.5}s ease-out forwards`, height: "44px" }
+    : {
+        height: "44px",
+        animation: `rowReveal 360ms cubic-bezier(0.16, 1, 0.3, 1) ${revealDelay}ms both`,
+      };
+
   return (
     <tr
       className={"border-t border-border transition cursor-pointer " + baseTone}
-      style={
-        flashing
-          ? { animation: `row-flash ${1.5}s ease-out forwards`, height: "44px" }
-          : { height: "44px" }
-      }
+      style={rowStyle}
     >
       <td className="px-card py-2 align-middle">
         <Link href={`/engagements/${engagement.id}`} className="block">
@@ -159,11 +173,8 @@ function Row({
       </td>
       <td className="px-card py-2 align-middle">
         <Link href={`/engagements/${engagement.id}`} className="block">
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-pill bg-blue-light text-primary text-badge">
-            <span className="font-bold">{engagement.service_line}</span>
-            <span className="hidden md:inline">
-              {getServiceLineName(engagement.service_line)}
-            </span>
+          <span className="text-body text-text-secondary">
+            {getServiceLineName(engagement.service_line)}
           </span>
         </Link>
       </td>

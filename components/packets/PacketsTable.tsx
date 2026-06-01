@@ -28,14 +28,13 @@ export default function PacketsTable({ rows }: { rows: PacketRowVM[] }) {
           <table className="w-full border-collapse text-body">
             <thead>
               <tr className="bg-surface-2 text-label">
-                <th className="px-card py-2.5 text-left font-bold">Packet ID</th>
                 <th className="px-card py-2.5 text-left font-bold">Client</th>
-                <th className="px-card py-2.5 text-left font-bold">Engagement ID</th>
-                <th className="px-card py-2.5 text-left font-bold">Service Line</th>
-                <th className="px-card py-2.5 text-left font-bold">Current State</th>
-                <th className="px-card py-2.5 text-left font-bold">CPA Approval</th>
-                <th className="px-card py-2.5 text-left font-bold">Events Logged</th>
-                <th className="px-card py-2.5 text-right font-bold">Replay</th>
+                <th className="px-card py-2.5 text-left font-bold">Service line</th>
+                <th className="px-card py-2.5 text-left font-bold">Status</th>
+                <th className="px-card py-2.5 text-left font-bold">Approval</th>
+                <th className="px-card py-2.5 text-left font-bold">History entries</th>
+                <th className="px-card py-2.5 text-left font-bold">Record ID</th>
+                <th className="px-card py-2.5 text-right font-bold">Play back</th>
               </tr>
             </thead>
             <tbody>
@@ -45,26 +44,20 @@ export default function PacketsTable({ rows }: { rows: PacketRowVM[] }) {
                   className="border-t border-border hover:bg-blue-light/50 transition"
                   style={{ height: "44px" }}
                 >
-                  <td className="px-card py-2 align-middle text-mono text-text-primary">
-                    {r.packetId}
-                  </td>
                   <td className="px-card py-2 align-middle">
                     <Link
                       href={`/engagements/${r.engagementUuid}`}
-                      className="text-card-title text-text-primary hover:text-primary"
+                      className="text-card-title text-text-primary hover:text-primary block"
                     >
                       {r.clientName}
+                      <div className="text-mono text-text-muted font-normal mt-0.5">
+                        {r.engagementCode}
+                      </div>
                     </Link>
                   </td>
-                  <td className="px-card py-2 align-middle text-mono text-text-muted">
-                    {r.engagementCode}
-                  </td>
                   <td className="px-card py-2 align-middle">
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-pill bg-blue-light text-primary text-badge">
-                      <span className="font-bold">{r.serviceLine}</span>
-                      <span className="hidden md:inline">
-                        {getServiceLineName(r.serviceLine)}
-                      </span>
+                    <span className="text-body text-text-secondary">
+                      {getServiceLineName(r.serviceLine)}
                     </span>
                   </td>
                   <td className="px-card py-2 align-middle">
@@ -72,7 +65,7 @@ export default function PacketsTable({ rows }: { rows: PacketRowVM[] }) {
                   </td>
                   <td className="px-card py-2 align-middle">
                     {r.hasApproval ? (
-                      <span className="text-green text-card-title">Granted</span>
+                      <span className="text-green text-card-title">Approved</span>
                     ) : (
                       <span className="text-text-muted text-card-title">—</span>
                     )}
@@ -80,13 +73,16 @@ export default function PacketsTable({ rows }: { rows: PacketRowVM[] }) {
                   <td className="px-card py-2 align-middle text-text-secondary">
                     {r.eventCount}
                   </td>
+                  <td className="px-card py-2 align-middle text-mono text-text-muted">
+                    {r.packetId}
+                  </td>
                   <td className="px-card py-2 align-middle text-right">
                     <button
                       type="button"
                       onClick={() => setOpen(r)}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-button bg-primary text-white text-card-title hover:opacity-95 transition"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-button border border-border bg-surface text-text-secondary text-card-title hover:bg-surface-2 transition"
                     >
-                      <Play className="w-3.5 h-3.5" aria-hidden /> Replay
+                      <Play className="w-3.5 h-3.5" aria-hidden /> Play back
                     </button>
                   </td>
                 </tr>
@@ -100,6 +96,7 @@ export default function PacketsTable({ rows }: { rows: PacketRowVM[] }) {
         open={open !== null}
         engagementId={open?.engagementUuid ?? ""}
         engagementCode={open?.engagementCode ?? ""}
+        clientName={open?.clientName ?? ""}
         onClose={() => setOpen(null)}
       />
     </>

@@ -17,7 +17,7 @@ export default function EngagementsPage({
     <>
       <PageHeader
         title="Engagements"
-        subtitle="Every engagement, every state. Filter, sort, drill in."
+        subtitle="Every engagement in your firm. Filter to find what you need."
       />
 
       <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">

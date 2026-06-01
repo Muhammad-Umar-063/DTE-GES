@@ -2,6 +2,7 @@ import Link from "next/link";
 import RealtimeRefresher from "@/components/RealtimeRefresher";
 import { createClient } from "@/lib/supabase/server";
 import { isToday, isYesterday, relativeTime } from "@/lib/time";
+import { getStateDisplay } from "@/lib/workflow";
 import type { EngagementEventRow } from "@/lib/db-types";
 
 const DOT_COLOR: Record<string, string> = {
@@ -30,39 +31,40 @@ function describe(
   clientName: string,
 ): string {
   const actor = actorName ?? (e.user_role ? e.user_role : "Someone");
+  const toLabel = e.to_state ? getStateDisplay(e.to_state).label : "";
   switch (e.action_type) {
     case "engagement_created":
       return `${actor} created the ${clientName} engagement`;
     case "stage_transition":
-      return `${actor} moved ${clientName} to ${e.to_state}`;
+      return `${clientName} moved to ${toLabel.toLowerCase()}`;
     case "approval_granted":
       return `${actor} approved ${clientName}`;
     case "approval_revoked":
       return `${actor} revoked approval on ${clientName}`;
     case "escalation_created":
-      return `${actor} escalated ${clientName}`;
+      return `${clientName} was flagged as needing attention`;
     case "escalation_resolved":
-      return `${actor} resolved the ${clientName} escalation`;
+      return `${clientName} is back on track`;
     case "gate_blocked":
-      return `Gate blocked: ${clientName} approval missing`;
+      return `${clientName} blocked — approval needed first`;
     case "transition_blocked":
-      return `Blocked transition on ${clientName}`;
+      return `${clientName} couldn't move forward`;
     case "ai_generation":
-      return `AI generated content for ${clientName}`;
+      return `Draft created with AI for ${clientName}`;
     case "document_uploaded":
-      return `Document uploaded for ${clientName}`;
+      return `Document received for ${clientName}`;
     case "document_flagged":
       return `Document flagged on ${clientName}`;
     case "packet_generated":
-      return `Runtime packet generated for ${clientName}`;
+      return `${clientName} engagement package created`;
     case "taxdome_sent":
-      return `${clientName} packet sent to TaxDome`;
+      return `${clientName} sent to TaxDome`;
     case "hubspot_updated":
-      return `${clientName} CRM record updated`;
+      return `${clientName} CRM updated`;
     case "automation_triggered":
-      return `Automation triggered on ${clientName}`;
+      return `Auto-step on ${clientName}`;
     case "automation_error":
-      return `Automation error on ${clientName}`;
+      return `System note on ${clientName}`;
     default:
       return `${actor} acted on ${clientName}`;
   }
@@ -121,14 +123,15 @@ export default async function RecentActivity({
   return (
     <aside
       className={
-        "w-full lg:w-[280px] lg:flex-shrink-0 card " + (className ?? "")
+        "w-full lg:w-[280px] lg:flex-shrink-0 card animate-content-reveal stagger-2 " +
+        (className ?? "")
       }
     >
       <RealtimeRefresher table="engagement_events" />
-      <h3 className="text-card-title mb-3">Recent activity</h3>
+      <h3 className="text-card-title mb-3">Recent activity in your firm</h3>
       {events.length === 0 ? (
         <p className="text-body text-text-muted text-center py-2">
-          No activity yet.
+          Nothing&apos;s happened yet today.
         </p>
       ) : (
         <div className="flex flex-col gap-4">

@@ -1,16 +1,21 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AlertTriangle, ChevronLeft } from "lucide-react";
+import { AlertTriangle, ChevronLeft, Sparkles } from "lucide-react";
 import DocumentInventory from "@/components/DocumentInventory";
 import RealtimeRefresher from "@/components/RealtimeRefresher";
 import EngagementStateBadge from "@/components/EngagementStateBadge";
 import PhaseProgressBar from "@/components/PhaseProgressBar";
 import RuntimePacket from "@/components/RuntimePacket";
 import WorkflowControls from "@/components/WorkflowControls";
+import PermanentRecordBadge from "@/components/PermanentRecordBadge";
 import EngagementInfo from "@/components/engagements/EngagementInfo";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { getServiceLineName } from "@/lib/workflow";
+import {
+  describeStateChange,
+  getFriendlyActionLabel,
+  getServiceLineName,
+} from "@/lib/workflow";
 import type {
   DocumentRow,
   EngagementEventRow,
@@ -72,12 +77,6 @@ export default async function EngagementDetailPage({
     }
   }
 
-  // Audit log event count for the title badge.
-  const { count: eventCount } = await supabase
-    .from("engagement_events")
-    .select("*", { count: "exact", head: true })
-    .eq("engagement_id", engagement.id);
-
   const hasApproval = !!engagement.cpa_approval_id;
   const isEscalated = engagement.current_state === "ESCALATED";
   // Show the "missing required documents" warning only when there is an outstanding doc
@@ -117,13 +116,14 @@ export default async function EngagementDetailPage({
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="min-w-0">
           <h1 className="text-page-title">{engagement.client_name}</h1>
-          <p className="text-body mt-1">
-            <span className="text-mono">{engagement.engagement_id}</span>
-            <span className="mx-2 text-text-muted">·</span>
-            <span className="font-bold">{engagement.service_line}</span>{" "}
+          <p className="text-body text-text-secondary mt-1">
             {getServiceLineName(engagement.service_line)}
             <span className="mx-2 text-text-muted">·</span>
             CPA: {cpaName ?? "—"}
+            <span className="mx-2 text-text-muted">·</span>
+            <span className="text-mono text-text-muted">
+              {engagement.engagement_id}
+            </span>
           </p>
         </div>
         <EngagementStateBadge state={engagement.current_state} className="text-sm" />
@@ -134,13 +134,13 @@ export default async function EngagementDetailPage({
           <div className="flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 text-red flex-shrink-0 mt-0.5" aria-hidden />
             <p className="text-body text-red leading-snug">
-              This engagement is escalated. Resolve the escalation before continuing.
+              This engagement needs attention. Resolve the issue before continuing.
             </p>
           </div>
         </div>
       )}
 
-      <div className="card mb-section">
+      <div className="card mb-section animate-content-reveal stagger-1">
         <PhaseProgressBar
           state={engagement.current_state}
           phase={engagement.current_phase}
@@ -149,56 +149,51 @@ export default async function EngagementDetailPage({
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-section">
         <div className="lg:col-span-3 flex flex-col gap-section">
-          <EngagementInfo engagement={engagement} cpaName={cpaName} />
+          <div className="animate-content-reveal stagger-3">
+            <EngagementInfo engagement={engagement} cpaName={cpaName} />
+          </div>
 
-          <div>
+          <div className="animate-content-reveal stagger-4">
             <DocumentInventory engagementId={engagement.id} />
             {showMissingDocsWarning && (
               <div className="mt-2 rounded-card border border-red/30 bg-red-light px-3 py-2">
                 <p className="text-body text-red">
-                  Missing required documents. Resolve before advancing.
+                  Some documents are still missing. Resolve before continuing.
                 </p>
               </div>
             )}
           </div>
 
-          <RuntimePacket engagementId={engagement.id} />
+          <div className="animate-content-reveal stagger-5">
+            <RuntimePacket engagementId={engagement.id} />
+          </div>
         </div>
 
         <div className="lg:col-span-2 flex flex-col gap-section">
-          <WorkflowControls
-            engagementId={engagement.id}
-            currentState={engagement.current_state}
-            hasApproval={hasApproval}
-            viewerRole={session.role}
-            previousStateBeforeEscalation={previousState}
-          />
-          <AuditLogCard engagementId={engagement.id} eventCount={eventCount ?? 0} />
+          <div className="animate-content-reveal stagger-2">
+            <WorkflowControls
+              engagementId={engagement.id}
+              currentState={engagement.current_state}
+              hasApproval={hasApproval}
+              viewerRole={session.role}
+              previousStateBeforeEscalation={previousState}
+            />
+          </div>
+          <div className="animate-content-reveal stagger-4">
+            <AuditLogCard engagementId={engagement.id} />
+          </div>
         </div>
       </div>
     </>
   );
 }
 
-function AuditLogCard({
-  engagementId,
-  eventCount,
-}: {
-  engagementId: string;
-  eventCount: number;
-}) {
+function AuditLogCard({ engagementId }: { engagementId: string }) {
   return (
     <div className="card">
       <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-        <h3 className="text-card-title">
-          Audit log — <span className="text-mono">engagement_events</span>
-        </h3>
-        <div className="flex items-center gap-2">
-          <span className="text-label">{eventCount} entries</span>
-          <span className="inline-flex items-center px-2 py-0.5 rounded-pill bg-red-light text-red text-badge uppercase tracking-wide">
-            Append only
-          </span>
-        </div>
+        <h3 className="text-card-title">Audit log</h3>
+        <PermanentRecordBadge />
       </div>
       <AuditLogInner engagementId={engagementId} />
     </div>
@@ -216,7 +211,7 @@ function AuditLogInner({ engagementId }: { engagementId: string }) {
   );
 }
 
-// Server-side fetch + render of audit rows without the card wrapper.
+// Server-side fetch + render of history rows without the card wrapper.
 async function RawEventList({ engagementId }: { engagementId: string }) {
   const supabase = createClient();
   const { data } = await supabase
@@ -230,7 +225,7 @@ async function RawEventList({ engagementId }: { engagementId: string }) {
   if (events.length === 0) {
     return (
       <p className="text-body text-text-muted text-center py-4">
-        No audit events yet.
+        Nothing has happened yet on this engagement.
       </p>
     );
   }
@@ -241,6 +236,7 @@ async function RawEventList({ engagementId }: { engagementId: string }) {
         const denial =
           e.action_type === "gate_blocked" ||
           e.action_type === "transition_blocked";
+        const stateChange = describeStateChange(e.from_state, e.to_state);
         return (
           <li
             key={e.event_id}
@@ -255,21 +251,21 @@ async function RawEventList({ engagementId }: { engagementId: string }) {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span
                     className={
-                      "text-mono " +
+                      "text-card-title " +
                       (denial ? "text-amber" : "text-text-primary")
                     }
                   >
-                    {e.action_type}
+                    {getFriendlyActionLabel(e.action_type)}
                   </span>
                   {e.ai_assisted && (
                     <span className="inline-flex items-center gap-1 text-badge text-purple bg-purple-light px-1.5 py-0.5 rounded-tag uppercase">
-                      AI
+                      <Sparkles className="w-2.5 h-2.5" aria-hidden /> AI
                     </span>
                   )}
                 </div>
-                {(e.from_state || e.to_state) && (
-                  <div className="text-mono mt-0.5 text-text-secondary">
-                    {(e.from_state ?? "—") + " → " + (e.to_state ?? "—")}
+                {stateChange && (
+                  <div className="text-body text-text-secondary mt-0.5">
+                    {stateChange}
                   </div>
                 )}
                 {e.notes && (
@@ -278,7 +274,7 @@ async function RawEventList({ engagementId }: { engagementId: string }) {
               </div>
               <div className="text-right flex-shrink-0">
                 <div className="text-label">{e.user_role}</div>
-                <div className="text-label mt-0.5 text-mono">
+                <div className="text-label mt-0.5 text-text-muted">
                   {new Date(e.timestamp).toLocaleString(undefined, {
                     month: "short",
                     day: "numeric",

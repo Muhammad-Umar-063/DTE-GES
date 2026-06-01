@@ -33,49 +33,46 @@ export default function EngagementInfo({
   className?: string;
 }) {
   const phase = PHASES.find((p) => p.number === engagement.current_phase);
-  const phaseLabel = phase
-    ? `Phase ${phase.number} — ${phase.label}`
-    : `Phase ${engagement.current_phase}`;
+  const phaseLabel = phase ? phase.label : `Step ${engagement.current_phase}`;
 
   const approvalStatus = engagement.cpa_approval_id ? (
-    <span className="text-green">Granted — on record</span>
+    <span className="text-green">Approved</span>
   ) : (
-    <span className="text-amber">Not yet granted — gate locked</span>
+    <span className="text-amber">Not yet approved</span>
   );
 
   return (
     <div className={"card " + (className ?? "")}>
-      <h3 className="text-card-title mb-3">Engagement information</h3>
+      <h3 className="text-card-title mb-3">Details</h3>
       <div>
-        <FieldRow
-          label="Engagement ID"
-          value={<span className="text-mono">{engagement.engagement_id}</span>}
-        />
         <FieldRow label="Client name" value={engagement.client_name} />
         <FieldRow
           label="Service line"
           value={
-            <span>
-              <span className="font-bold">{engagement.service_line}</span>{" "}
-              <span className="text-text-secondary">
-                {getServiceLineName(engagement.service_line)}
-              </span>
-            </span>
+            <span>{getServiceLineName(engagement.service_line)}</span>
           }
         />
-        <FieldRow label="Current phase" value={phaseLabel} />
+        <FieldRow label="Current stage" value={phaseLabel} />
         <FieldRow
-          label="Current state"
+          label="Status"
           value={<EngagementStateBadge state={engagement.current_state} />}
         />
         <FieldRow label="Assigned CPA" value={cpaName ?? "—"} />
-        <FieldRow label="CPA approval status" value={approvalStatus} />
+        <FieldRow label="Approval" value={approvalStatus} />
         <FieldRow
           label={engagement.tax_year ? "Tax year" : "Reporting period"}
           value={engagement.tax_year ?? engagement.reporting_period ?? "—"}
         />
         <FieldRow label="Created" value={fmtDate(engagement.created_at)} />
         <FieldRow label="Last updated" value={fmtDate(engagement.updated_at)} />
+        <FieldRow
+          label="Engagement ID"
+          value={
+            <span className="text-mono text-text-muted">
+              {engagement.engagement_id}
+            </span>
+          }
+        />
       </div>
     </div>
   );

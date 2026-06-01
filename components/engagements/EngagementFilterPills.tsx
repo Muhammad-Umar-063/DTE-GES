@@ -12,10 +12,10 @@ export type FilterKey =
 
 const PILLS: Array<{ key: FilterKey; label: string }> = [
   { key: "all", label: "All" },
-  { key: "needs-approval", label: "Needs Approval" },
-  { key: "escalated", label: "Escalated" },
-  { key: "in-execution", label: "In Execution" },
-  { key: "ready-for-release", label: "Ready for Release" },
+  { key: "needs-approval", label: "Waiting on me" },
+  { key: "escalated", label: "Needs attention" },
+  { key: "in-execution", label: "Work in progress" },
+  { key: "ready-for-release", label: "Ready to send" },
 ];
 
 export default function EngagementFilterPills({

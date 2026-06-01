@@ -2,9 +2,15 @@ import Link from "next/link";
 import { LogIn, LogOut, Sparkles } from "lucide-react";
 import PageHeader from "@/components/shell/PageHeader";
 import EmptyState from "@/components/EmptyState";
+import PermanentRecordBadge from "@/components/PermanentRecordBadge";
+import ScrollReveal from "@/components/ScrollReveal";
 import AuditFilters from "@/components/audit/AuditFilters";
 import { createClient } from "@/lib/supabase/server";
 import { relativeTime } from "@/lib/time";
+import {
+  describeStateChange,
+  getFriendlyActionLabel,
+} from "@/lib/workflow";
 import type { EngagementEventRow, EngagementRow } from "@/lib/db-types";
 
 type UserSessionRow = {
@@ -123,27 +129,15 @@ export default async function AuditPage({
     <>
       <PageHeader
         title="Audit Trail"
-        subtitle="Every transition, every approval, every override — immutable."
+        subtitle="Every transition, every approval, every override — saved forever."
+        actions={<PermanentRecordBadge />}
       />
 
-      <div className="mb-section rounded-card border border-red/30 bg-red-light px-3 py-2">
-        <p className="text-body text-red font-semibold">
-          APPEND ONLY — No UPDATE or DELETE permission for any role
-        </p>
-      </div>
-
-      <div className="card mb-section">
+      <ScrollReveal className="block mb-section">
+      <div className="card">
         <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-          <h3 className="text-card-title">
-            Recent login sessions —{" "}
-            <span className="text-mono">user_sessions</span>
-          </h3>
-          <div className="flex items-center gap-2">
-            <span className="text-label">{sessions.length} latest</span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-pill bg-red-light text-red text-badge uppercase tracking-wide">
-              Append only
-            </span>
-          </div>
+          <h3 className="text-card-title">Recent sign-ins</h3>
+          <span className="text-label">{sessions.length} latest</span>
         </div>
         {sessions.length === 0 ? (
           <p className="text-body text-text-muted text-center py-4">
@@ -232,14 +226,16 @@ export default async function AuditPage({
           </div>
         )}
       </div>
+      </ScrollReveal>
 
-      <h2 className="text-section-title mb-3">Engagement events</h2>
+      <ScrollReveal>
+      <h2 className="text-section-title mb-3">Activity across your firm</h2>
 
       <AuditFilters
         className="mb-section"
         engagementOptions={engagements.map((e) => ({
           id: e.id,
-          label: `${e.engagement_id} — ${e.client_name}`,
+          label: `${e.client_name} (${e.engagement_id})`,
         }))}
         actionOptions={ACTION_OPTIONS}
         roleOptions={ROLE_OPTIONS}
@@ -248,7 +244,7 @@ export default async function AuditPage({
       {events.length === 0 ? (
         <div className="card">
           <EmptyState
-            title="No events match these filters"
+            title="Nothing matches these filters"
             description="Adjust or clear the filters above to see more."
           />
         </div>
@@ -258,12 +254,11 @@ export default async function AuditPage({
             <table className="w-full border-collapse text-body">
               <thead>
                 <tr className="bg-surface-2 text-label">
-                  <th className="px-card py-2.5 text-left font-bold">Timestamp</th>
+                  <th className="px-card py-2.5 text-left font-bold">When</th>
                   <th className="px-card py-2.5 text-left font-bold">Role</th>
-                  <th className="px-card py-2.5 text-left font-bold">Action</th>
+                  <th className="px-card py-2.5 text-left font-bold">What happened</th>
                   <th className="px-card py-2.5 text-left font-bold">Engagement</th>
-                  <th className="px-card py-2.5 text-left font-bold">From</th>
-                  <th className="px-card py-2.5 text-left font-bold">To</th>
+                  <th className="px-card py-2.5 text-left font-bold">Change</th>
                   <th className="px-card py-2.5 text-left font-bold">AI</th>
                   <th className="px-card py-2.5 text-left font-bold">Notes</th>
                 </tr>
@@ -271,16 +266,22 @@ export default async function AuditPage({
               <tbody>
                 {events.map((e) => {
                   const engCode = engMap.get(e.engagement_id);
+                  const stateChange = describeStateChange(e.from_state, e.to_state);
                   return (
                     <tr key={e.event_id} className="border-t border-border hover:bg-blue-light/40 transition">
-                      <td className="px-card py-2 align-middle text-mono whitespace-nowrap">
-                        {new Date(e.timestamp).toLocaleString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                      <td className="px-card py-2 align-middle whitespace-nowrap">
+                        <div className="text-body text-text-primary">
+                          {relativeTime(e.timestamp)}
+                        </div>
+                        <div className="text-label text-text-muted mt-0.5">
+                          {new Date(e.timestamp).toLocaleString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
                       </td>
                       <td className="px-card py-2 align-middle">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-pill bg-surface-2 text-text-secondary text-badge uppercase tracking-wide">
@@ -290,13 +291,13 @@ export default async function AuditPage({
                       <td className="px-card py-2 align-middle">
                         <span
                           className={
-                            "text-mono " +
+                            "text-body " +
                             (DENIAL_ACTIONS.has(e.action_type)
                               ? "text-amber"
                               : "text-text-primary")
                           }
                         >
-                          {e.action_type}
+                          {getFriendlyActionLabel(e.action_type)}
                         </span>
                       </td>
                       <td className="px-card py-2 align-middle">
@@ -311,11 +312,8 @@ export default async function AuditPage({
                           <span className="text-mono text-text-muted">—</span>
                         )}
                       </td>
-                      <td className="px-card py-2 align-middle text-mono text-text-secondary">
-                        {e.from_state ?? "—"}
-                      </td>
-                      <td className="px-card py-2 align-middle text-mono text-text-secondary">
-                        {e.to_state ?? "—"}
+                      <td className="px-card py-2 align-middle text-body text-text-secondary">
+                        {stateChange ?? "—"}
                       </td>
                       <td className="px-card py-2 align-middle">
                         {e.ai_assisted ? (
@@ -337,6 +335,8 @@ export default async function AuditPage({
           </div>
         </div>
       )}
+      </ScrollReveal>
     </>
   );
 }
+

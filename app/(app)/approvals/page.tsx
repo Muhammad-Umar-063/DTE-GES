@@ -29,8 +29,8 @@ export default async function ApprovalsPage() {
         title="Approvals"
         subtitle={
           items.length === 1
-            ? "1 engagement is waiting for CPA sign-off."
-            : `${items.length} engagement${items.length === 1 ? "" : "s"} ${items.length === 1 ? "is" : "are"} waiting for CPA sign-off.`
+            ? "1 engagement is waiting for your approval."
+            : `${items.length} engagements are waiting for your approval.`
         }
       />
 
@@ -38,17 +38,18 @@ export default async function ApprovalsPage() {
         <div className="card">
           <EmptyState
             icon={CheckCircle2}
-            title="All caught up. No engagements are waiting for your approval."
-            description="When a CPA review is requested, it will appear here."
+            title="All caught up — nothing waiting on you."
+            description="When the team finishes work and is ready for your approval, it will show up here."
           />
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-section">
-          {items.map((eng) => (
+          {items.map((eng, idx) => (
             <ApprovalCard
               key={eng.id}
               engagement={eng}
               canApprove={session?.role === "cpa"}
+              className={`stagger-${Math.min(idx + 1, 6)}`}
             />
           ))}
         </div>

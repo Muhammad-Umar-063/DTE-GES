@@ -32,12 +32,12 @@ export default async function EscalationsPage() {
         <RealtimeRefresher table="engagements" />
         <PageHeader
           title="Escalations"
-          subtitle="Engagements that need attention before they can move."
+          subtitle="Engagements that are flagged and need someone to look at them."
         />
         <div className="card">
           <EmptyState
             icon={CheckCircle2}
-            title="No active escalations. All engagements are moving normally."
+            title="No active escalations — everything's moving normally."
           />
         </div>
       </>
@@ -85,12 +85,12 @@ export default async function EscalationsPage() {
         title="Escalations"
         subtitle={
           items.length === 1
-            ? "1 engagement needs attention before it can move."
-            : `${items.length} engagements need attention before they can move.`
+            ? "1 engagement is flagged and needs you to take a look."
+            : `${items.length} engagements are flagged and need you to take a look.`
         }
       />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-section">
-        {items.map((eng) => (
+        {items.map((eng, idx) => (
           <EscalationCard
             key={eng.id}
             engagement={eng}
@@ -100,6 +100,7 @@ export default async function EscalationsPage() {
             }
             missingDocs={missingByEng.get(eng.id) ?? []}
             viewerRole={session?.role ?? "staff"}
+            className={`stagger-${Math.min(idx + 1, 6)}`}
           />
         ))}
       </div>

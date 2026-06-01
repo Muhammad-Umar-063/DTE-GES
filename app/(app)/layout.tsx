@@ -37,7 +37,9 @@ export default async function AppLayout({
             escalationsCount={escalationsCount ?? 0}
           />
           <main className="flex-1 overflow-y-auto">
-            <div className="px-page-x py-page-y">{children}</div>
+            <div className="px-page-x py-page-y animate-page-enter">
+              {children}
+            </div>
           </main>
         </div>
       </div>

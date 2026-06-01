@@ -49,10 +49,19 @@ export default async function DocumentInventory({
     { received: 0, pending: 0, missing: 0, flagged: 0 },
   );
 
+  const totalNonMissing = counts.received + counts.pending + counts.flagged;
+  const total = totalNonMissing + counts.missing;
   return (
     <div className={"card " + (className ?? "")}>
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-card-title">Document Inventory</h3>
+      <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+        <div>
+          <h3 className="text-card-title">Documents</h3>
+          {total > 0 && (
+            <p className="text-label mt-0.5">
+              {counts.received} of {total} received
+            </p>
+          )}
+        </div>
         <div className="flex items-center gap-3 text-label">
           <CountChip color="bg-green" label="Received" count={counts.received} />
           <CountChip color="bg-amber" label="Pending" count={counts.pending} />
@@ -62,7 +71,7 @@ export default async function DocumentInventory({
       </div>
       {docs.length === 0 ? (
         <p className="text-body text-text-muted text-center py-4">
-          No documents yet.
+          No documents on file yet.
         </p>
       ) : (
         <ul className="divide-y divide-border">

@@ -53,7 +53,7 @@ export default async function DashboardPage({
         <Suspense
           fallback={
             <aside className="w-full lg:w-[280px] lg:flex-shrink-0 card">
-              <h3 className="text-card-title mb-3">Recent activity</h3>
+              <h3 className="text-card-title mb-3">Recent activity in your firm</h3>
               <SkeletonBlock rows={6} />
             </aside>
           }

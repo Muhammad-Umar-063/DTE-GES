@@ -2,31 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
+import { describeStateChange, getFriendlyActionLabel } from "@/lib/workflow";
 import type { EngagementEventRow } from "@/lib/db-types";
-
-const ACTION_LABEL: Record<string, string> = {
-  engagement_created: "Engagement created",
-  stage_transition: "Stage transition",
-  approval_granted: "Approval granted",
-  approval_revoked: "Approval revoked",
-  escalation_created: "Engagement escalated",
-  escalation_resolved: "Escalation resolved",
-  gate_blocked: "Gate blocked",
-  transition_blocked: "Transition blocked",
-  ai_generation: "AI generation",
-  document_uploaded: "Document uploaded",
-  document_flagged: "Document flagged",
-  packet_generated: "Packet generated",
-  taxdome_sent: "Sent to TaxDome",
-  hubspot_updated: "HubSpot updated",
-  automation_triggered: "Automation triggered",
-  automation_error: "Automation error",
-};
 
 export type ReplayModalProps = {
   open: boolean;
   engagementId: string;
   engagementCode: string;
+  clientName?: string;
   onClose: () => void;
 };
 
@@ -34,6 +17,7 @@ export default function ReplayModal({
   open,
   engagementId,
   engagementCode,
+  clientName,
   onClose,
 }: ReplayModalProps) {
   const [events, setEvents] = useState<EngagementEventRow[] | null>(null);
@@ -86,9 +70,16 @@ export default function ReplayModal({
       />
       <div className="relative card max-w-2xl w-[92vw] max-h-[80vh] flex flex-col shadow-card-hover p-0 overflow-hidden">
         <div className="flex items-center justify-between px-card py-3 border-b border-border">
-          <h2 id="replay-title" className="text-section-title">
-            Replay — <span className="text-mono">{engagementCode}</span>
-          </h2>
+          <div className="min-w-0">
+            <h2 id="replay-title" className="text-section-title">
+              {clientName ? `${clientName} — history` : "History"}
+            </h2>
+            {engagementCode && (
+              <p className="text-label text-text-muted mt-0.5 text-mono">
+                {engagementCode}
+              </p>
+            )}
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -104,7 +95,7 @@ export default function ReplayModal({
             <p className="text-body text-text-muted">Loading…</p>
           )}
           {events && events.length === 0 && (
-            <p className="text-body text-text-muted">No events to replay.</p>
+            <p className="text-body text-text-muted">Nothing to show yet.</p>
           )}
           {events && events.length > 0 && (
             <ol className="relative pl-5">
@@ -112,50 +103,53 @@ export default function ReplayModal({
                 aria-hidden
                 className="absolute left-1.5 top-2 bottom-2 w-px bg-border"
               />
-              {events.map((e) => (
-                <li key={e.event_id} className="relative py-2.5">
-                  <span
-                    aria-hidden
-                    className={
-                      "absolute -left-[14px] top-3.5 w-2 h-2 rounded-full " +
-                      (e.action_type === "gate_blocked" ||
-                      e.action_type === "transition_blocked"
-                        ? "bg-amber"
-                        : e.action_type === "escalation_created"
-                          ? "bg-red"
-                          : e.action_type === "approval_granted"
-                            ? "bg-green"
-                            : "bg-primary")
-                    }
-                  />
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-card-title text-text-primary">
-                        {ACTION_LABEL[e.action_type] ?? e.action_type}
-                      </div>
-                      {(e.from_state || e.to_state) && (
-                        <div className="text-mono mt-0.5 text-text-secondary">
-                          {(e.from_state ?? "—") + " → " + (e.to_state ?? "—")}
+              {events.map((e) => {
+                const stateChange = describeStateChange(e.from_state, e.to_state);
+                return (
+                  <li key={e.event_id} className="relative py-2.5">
+                    <span
+                      aria-hidden
+                      className={
+                        "absolute -left-[14px] top-3.5 w-2 h-2 rounded-full " +
+                        (e.action_type === "gate_blocked" ||
+                        e.action_type === "transition_blocked"
+                          ? "bg-amber"
+                          : e.action_type === "escalation_created"
+                            ? "bg-red"
+                            : e.action_type === "approval_granted"
+                              ? "bg-green"
+                              : "bg-primary")
+                      }
+                    />
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-card-title text-text-primary">
+                          {getFriendlyActionLabel(e.action_type)}
                         </div>
-                      )}
-                      {e.notes && (
-                        <p className="text-body mt-1">{e.notes}</p>
-                      )}
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <div className="text-label">{e.user_role}</div>
-                      <div className="text-label mt-0.5 text-mono">
-                        {new Date(e.timestamp).toLocaleString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {stateChange && (
+                          <div className="text-body mt-0.5 text-text-secondary">
+                            {stateChange}
+                          </div>
+                        )}
+                        {e.notes && (
+                          <p className="text-body mt-1">{e.notes}</p>
+                        )}
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="text-label">{e.user_role}</div>
+                        <div className="text-label mt-0.5 text-text-muted">
+                          {new Date(e.timestamp).toLocaleString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ol>
           )}
         </div>

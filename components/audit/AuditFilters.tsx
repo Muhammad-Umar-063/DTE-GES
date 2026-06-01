@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
+import { getFriendlyActionLabel } from "@/lib/workflow";
 
 export type AuditFiltersProps = {
   engagementOptions: Array<{ id: string; label: string }>;
@@ -44,7 +45,7 @@ export default function AuditFilters({
           onChange={(e) => update("engagement", e.target.value)}
           className="w-full px-3 py-2 text-body text-text-primary bg-surface border border-border rounded-input focus:outline-none focus:border-primary"
         >
-          <option value="">All engagements</option>
+          <option value="">Any engagement</option>
           {engagementOptions.map((o) => (
             <option key={o.id} value={o.id}>
               {o.label}
@@ -53,16 +54,16 @@ export default function AuditFilters({
         </select>
       </Field>
 
-      <Field label="Action type">
+      <Field label="What happened">
         <select
           value={cur("action")}
           onChange={(e) => update("action", e.target.value)}
           className="w-full px-3 py-2 text-body text-text-primary bg-surface border border-border rounded-input focus:outline-none focus:border-primary"
         >
-          <option value="">All actions</option>
+          <option value="">Anything</option>
           {actionOptions.map((a) => (
             <option key={a} value={a}>
-              {a}
+              {getFriendlyActionLabel(a)}
             </option>
           ))}
         </select>
@@ -74,7 +75,7 @@ export default function AuditFilters({
           onChange={(e) => update("role", e.target.value)}
           className="w-full px-3 py-2 text-body text-text-primary bg-surface border border-border rounded-input focus:outline-none focus:border-primary"
         >
-          <option value="">All roles</option>
+          <option value="">Any role</option>
           {roleOptions.map((r) => (
             <option key={r} value={r}>
               {r}
@@ -83,7 +84,7 @@ export default function AuditFilters({
         </select>
       </Field>
 
-      <Field label="From / To dates">
+      <Field label="From / to dates">
         <div className="grid grid-cols-2 gap-2">
           <input
             type="date"

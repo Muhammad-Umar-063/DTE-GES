@@ -1,5 +1,6 @@
 import { ShieldCheck } from "lucide-react";
 import PageHeader from "@/components/shell/PageHeader";
+import ScrollReveal from "@/components/ScrollReveal";
 import { getSession } from "@/lib/auth";
 
 export const metadata = { title: "Settings — DTE GES" };
@@ -11,28 +12,28 @@ const ROLE_MATRIX: Array<{
   {
     role: "cpa",
     capabilities: [
-      "Grant CPA approval (REVIEW_REQUIRED → APPROVED)",
-      "Execute role-gated transitions (READY_FOR_EXECUTION → EXECUTION_ACTIVE, etc.)",
-      "Move engagements through release and archive",
-      "Escalate or roll back any engagement",
-      "View every engagement and the firm-wide audit trail",
+      "Approve engagements before they go to the client",
+      "Start the work after the team finishes document review",
+      "Send engagements to the client and close them out",
+      "Flag or send back any engagement",
+      "See every engagement and the full firm history",
     ],
   },
   {
     role: "staff",
     capabilities: [
-      "Start intake and move evidence collection forward",
-      "Escalate engagements with a reason",
-      "View every engagement and audit trail (read-only on governed actions)",
-      "Cannot grant CPA approval or perform CPA-only transitions",
+      "Start intake and collect documents from clients",
+      "Flag engagements that need a CPA's attention",
+      "See every engagement and the full firm history",
+      "Cannot approve engagements or do CPA-only steps",
     ],
   },
   {
     role: "admin",
     capabilities: [
-      "Administrative oversight (cannot bypass the audit log)",
-      "Read access to firm-wide records and audit trail",
-      "Not in the workflow role list — does not perform engagement transitions",
+      "Administrative oversight (cannot skip the history log)",
+      "Read access to firm-wide records and history",
+      "Does not take action on engagements directly",
     ],
   },
 ];
@@ -68,20 +69,19 @@ export default async function SettingsPage() {
         <div className="card">
           <div className="flex items-start gap-2 mb-2">
             <ShieldCheck className="w-4 h-4 text-green flex-shrink-0 mt-0.5" aria-hidden />
-            <h3 className="text-card-title">Governance</h3>
+            <h3 className="text-card-title">Compliance</h3>
           </div>
           <p className="text-body">
-            Every state change passes through the governance engine. Every action
-            — successful or denied — writes an immutable row to{" "}
-            <span className="text-mono">engagement_events</span>. There is no
-            UPDATE or DELETE permission on that table for any application role,
-            and approvals are recorded as permanent records on{" "}
-            <span className="text-mono">engagement_approvals</span>.
+            Every action across your firm is logged permanently. Nothing can be
+            edited or deleted after the fact — this is your firm&apos;s compliance
+            trail. Approvals are saved as permanent records that anyone can look
+            back at later.
           </p>
         </div>
       </div>
 
-      <div className="mt-section card">
+      <ScrollReveal className="block mt-section">
+      <div className="card">
         <h3 className="text-card-title mb-3">Role permission matrix</h3>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-card">
           {ROLE_MATRIX.map((r) => (
@@ -108,8 +108,10 @@ export default async function SettingsPage() {
           ))}
         </div>
       </div>
+      </ScrollReveal>
 
-      <div className="mt-section card">
+      <ScrollReveal className="block mt-section">
+      <div className="card">
         <h3 className="text-card-title mb-2">Out of MVP scope</h3>
         <p className="text-body">
           Interactive settings — notification routing, integration credentials,
@@ -117,6 +119,7 @@ export default async function SettingsPage() {
           read-only by design.
         </p>
       </div>
+      </ScrollReveal>
     </>
   );
 }

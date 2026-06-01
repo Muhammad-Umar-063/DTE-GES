@@ -11,6 +11,10 @@ export type ConfirmDialogProps = {
   danger?: boolean;
   requireReason?: boolean;
   reasonLabel?: string;
+  /** Short prompt above the reason textarea — e.g. "What changed?" */
+  reasonPrompt?: string;
+  /** Concrete example shown as textarea placeholder. */
+  reasonPlaceholder?: string;
   onConfirm: (reason?: string) => void | Promise<void>;
   onClose: () => void;
   children?: ReactNode;
@@ -25,7 +29,9 @@ export default function ConfirmDialog({
   cancelLabel = "Cancel",
   danger = false,
   requireReason = false,
-  reasonLabel = "Reason (required)",
+  reasonLabel = "A quick note (required)",
+  reasonPrompt,
+  reasonPlaceholder,
   onConfirm,
   onClose,
   children,
@@ -58,7 +64,7 @@ export default function ConfirmDialog({
 
   async function handleConfirm() {
     if (requireReason && !reason.trim()) {
-      setReasonError("Please add a reason.");
+      setReasonError("Add a quick note so the team knows what changed.");
       return;
     }
     setReasonError(null);
@@ -95,13 +101,19 @@ export default function ConfirmDialog({
             <label className="text-label block mb-1.5" htmlFor="confirm-reason">
               {reasonLabel}
             </label>
+            {reasonPrompt && (
+              <p className="text-body text-text-secondary mb-1.5 leading-snug">
+                {reasonPrompt}
+              </p>
+            )}
             <textarea
               ref={inputRef}
               id="confirm-reason"
               rows={3}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="w-full px-3 py-2 text-body text-text-primary bg-surface border border-border rounded-input focus:outline-none focus:border-primary resize-y"
+              placeholder={reasonPlaceholder}
+              className="w-full px-3 py-2 text-body text-text-primary bg-surface border border-border rounded-input focus:outline-none focus:border-primary resize-y placeholder:text-text-muted"
               disabled={pending}
             />
             {reasonError && (
